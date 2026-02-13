@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Build files
+*.love
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
