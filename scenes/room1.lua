@@ -105,6 +105,13 @@ function Room1:createSceneObjects()
     table:setBaseline(550)   -- Bottom of table legs = baseline for depth sorting
     table:setLayer("middle")
     
+    -- Add collision masks for the table legs (not the top!)
+    -- This allows player to walk "under" the table but not through the legs
+    -- Left leg collision
+    table:addCollisionRectangle(390, 470, 30, 80)
+    -- Right leg collision  
+    table:addCollisionRectangle(580, 470, 30, 80)
+    
     self:addObject(table)
     
     -- Create a plant/vase as another depth-sorted object
@@ -130,6 +137,9 @@ function Room1:createSceneObjects()
     plant:setOrigin(0.5, 1)
     plant:setBaseline(480)
     plant:setLayer("middle")
+    
+    -- Add circular collision for the plant pot (solid object)
+    plant:addCollisionCircle(700, 480, 30)
     
     self:addObject(plant)
 end

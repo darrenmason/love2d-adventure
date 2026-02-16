@@ -15,6 +15,7 @@ A traditional point-and-click adventure game engine built with [LÖVE2D](https:/
 - **NPC System**: Interactive characters with conversations
 - **Game State**: Persistent flags for tracking progress
 - **Depth Sorting System**: Automatic z-ordering so characters can walk behind and in front of objects with transparency support
+- **Collision Mask System**: Flexible collision detection with support for solid objects, complex shapes (table legs), and passthrough decorative elements
 
 ### Interaction Types
 
@@ -274,14 +275,59 @@ For complete documentation, examples, and API reference, see:
 - **[DEPTH_SORTING.md](DEPTH_SORTING.md)** - Complete depth sorting guide
 - **[examples/depth_sorting_example.lua](examples/depth_sorting_example.lua)** - Working example scene
 
+## Collision Masks
+
+The engine supports flexible collision masks that control which objects block player movement.
+
+### Quick Example
+
+```lua
+-- Create a table
+local table = SceneObject:new("Table", 500, 500)
+table:setSprite("assets/table.png")
+table:setBaseline(500)
+
+-- Add collision ONLY for the legs (not the table top!)
+table:addCollisionRectangle(440, 420, 30, 80)  -- Left leg
+table:addCollisionRectangle(570, 420, 30, 80)  -- Right leg
+
+scene:addObject(table)
+-- Player can walk "under" the table but not through the legs!
+```
+
+### Collision Types
+
+- **Rectangle**: `object:addCollisionRectangle(x, y, width, height)`
+- **Circle**: `object:addCollisionCircle(x, y, radius)`
+- **Polygon**: `object:addCollisionPolygon({x1, y1, x2, y2, ...})`
+- **Multiple masks**: Add multiple masks to one object for complex shapes
+- **No collision**: Simply don't add masks for decorative objects
+
+### Features
+
+- ✅ Solid objects (crates, walls)
+- ✅ Complex shapes (table legs, chair legs)
+- ✅ Passthrough decorative elements (flowers, paintings)
+- ✅ Dynamic enable/disable collision
+- ✅ Multiple collision masks per object
+- ✅ Debug visualization (hold D)
+
+### See Full Documentation
+
+- **[COLLISION_MASKS.md](COLLISION_MASKS.md)** - Complete collision system guide
+- **[examples/collision_example.lua](examples/collision_example.lua)** - Interactive collision demo
+
 ## Project Structure
 
 ```
 love2d-adventure/
 ├── main.lua                      # Entry point
 ├── conf.lua                      # LÖVE configuration
-├── README.md                     # This file
+├── README.md                     # Main documentation
+├── QUICK_REFERENCE.md            # Quick reference guide
 ├── DEPTH_SORTING.md              # Depth sorting documentation
+├── COLLISION_MASKS.md            # Collision system documentation
+├── CHANGELOG.md                  # Version history
 ├── engine/                       # Core engine modules
 │   ├── game.lua                 # Main game engine
 │   ├── scene.lua                # Scene/room system
@@ -295,7 +341,8 @@ love2d-adventure/
 ├── scenes/                      # Game scenes/rooms
 │   └── room1.lua                # Example room with depth sorting
 ├── examples/                    # Example scenes
-│   └── depth_sorting_example.lua # Depth sorting demo
+│   ├── depth_sorting_example.lua # Depth sorting demo
+│   └── collision_example.lua    # Collision masks demo
 └── assets/                      # Images, sounds, etc.
 ```
 

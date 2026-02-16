@@ -93,8 +93,19 @@ function Scene:update(dt)
                 local vx = (dx / distance) * self.walkSpeed * dt
                 local vy = (dy / distance) * self.walkSpeed * dt
                 
-                self.player.x = self.player.x + vx
-                self.player.y = self.player.y + vy
+                -- Calculate new position
+                local newX = self.player.x + vx
+                local newY = self.player.y + vy
+                
+                -- Check collision at new position
+                if not self:checkCollisionAtPoint(newX, newY, 10) then
+                    self.player.x = newX
+                    self.player.y = newY
+                else
+                    -- Hit an obstacle, stop movement
+                    self.player.path = nil
+                    self.player.pathIndex = 1
+                end
                 
                 -- Update facing direction
                 self.player.facingLeft = dx < 0
@@ -333,6 +344,12 @@ function Scene:handleMouseMove(x, y)
 end
 
 function Scene:walkTo(x, y, callback)
+    -- Check if destination collides with any object
+    if self:checkCollisionAtPoint(x, y, 10) then
+        -- Find nearest non-colliding point
+        x, y = self:findNearestWalkablePoint(x, y)
+    end
+    
     -- Find path to target
     if self.walkableArea then
         -- Simple direct path for now
@@ -352,6 +369,70 @@ end
 function Scene:walkToHotspot(hotspot, callback)
     local x, y = hotspot:getInteractionPoint()
     self:walkTo(x, y, callback)
+end
+
+function Scene:checkCollisionAtPoint(x, y, radius)
+    -- Check if a point (with radius) collides with any scene object
+    radius = radius or 0
+    
+    for _, obj in ipairs(self.objects) do
+        if obj:checkCollision(x, y, radius) then
+            return true, obj
+        end
+    end
+    
+    return false, nil
+end
+
+function Scene:findNearestWalkablePoint(x, y, searchRadius)
+    -- Find nearest point that doesn't collide with objects
+    searchRadius = searchRadius or 50
+    local bestX, bestY = x, y
+    local bestDist = math.huge
+    
+    -- Try points in a spiral pattern
+    local angles = 16
+    local rings = 5
+    
+    for ring = 1, rings do
+        local r = (ring / rings) * searchRadius
+        
+        for i = 0, angles - 1 do
+            local angle = (i / angles) * math.pi * 2
+            local testX = x + math.cos(angle) * r
+            local testY = y + math.sin(angle) * r
+            
+            if not self:checkCollisionAtPoint(testX, testY, 10) then
+                local dist = math.sqrt((testX - x) * (testX - x) + (testY - y) * (testY - y))
+                if dist < bestDist then
+                    bestDist = dist
+                    bestX, bestY = testX, testY
+                end
+            end
+        end
+        
+        -- If we found a valid point, return it
+        if bestDist < math.huge then
+            return bestX, bestY
+        end
+    end
+    
+    -- Fallback: return original point
+    return x, y
+end
+
+function Scene:getCollidingObjects(x, y, radius)
+    -- Get all objects that collide at this point
+    radius = radius or 0
+    local colliding = {}
+    
+    for _, obj in ipairs(self.objects) do
+        if obj:checkCollision(x, y, radius) then
+            table.insert(colliding, obj)
+        end
+    end
+    
+    return colliding
 end
 
 function Scene:onEnter()
