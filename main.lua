@@ -8,6 +8,7 @@ require("engine.dialog")
 require("engine.hotspot")
 require("engine.interaction")
 require("engine.pathfinding")
+require("engine.sceneobject")
 require("engine.scene")
 require("engine.game")
 

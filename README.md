@@ -14,6 +14,7 @@ A traditional point-and-click adventure game engine built with [LÖVE2D](https:/
 - **Pathfinding**: Character movement with walkable areas
 - **NPC System**: Interactive characters with conversations
 - **Game State**: Persistent flags for tracking progress
+- **Depth Sorting System**: Automatic z-ordering so characters can walk behind and in front of objects with transparency support
 
 ### Interaction Types
 
@@ -222,24 +223,80 @@ end
 local value = game:getFlag("puzzleSolved")
 ```
 
+## Depth Sorting System
+
+The engine includes automatic depth sorting that allows characters to walk behind and in front of objects naturally, creating a 3D-like effect.
+
+### Quick Example
+
+```lua
+-- Create a table the player can walk around
+local tableCanvas = love.graphics.newCanvas(200, 150)
+love.graphics.setCanvas(tableCanvas)
+love.graphics.clear(0, 0, 0, 0)  -- Transparent background
+
+-- Draw table
+love.graphics.setColor(0.6, 0.4, 0.2)
+love.graphics.rectangle("fill", 0, 0, 200, 100)
+love.graphics.rectangle("fill", 10, 100, 30, 50)   -- Left leg
+love.graphics.rectangle("fill", 160, 100, 30, 50)  -- Right leg
+
+love.graphics.setCanvas()
+love.graphics.setColor(1, 1, 1)
+
+-- Create scene object with depth sorting
+local table = SceneObject:new("Table", 500, 500)
+table:setSpriteImage(tableCanvas)
+table:setOrigin(0.5, 1)        -- Center-bottom origin
+table:setBaseline(500)          -- Bottom Y for depth sorting
+table:setLayer("middle")        -- Participates in depth sorting
+
+scene:addObject(table)
+```
+
+### How It Works
+
+- Objects, NPCs, and the player are sorted by their **baseline** Y position
+- Lower Y = further back (drawn first)
+- Higher Y = closer to front (drawn later/on top)
+- When player walks above object (lower Y), they appear behind it
+- When player walks below object (higher Y), they appear in front
+
+### Layers
+
+- **background**: Always behind everything (walls, distant scenery)
+- **middle**: Participates in depth sorting (default)
+- **foreground**: Always on top (overhangs, ceiling elements)
+
+### See Full Documentation
+
+For complete documentation, examples, and API reference, see:
+- **[DEPTH_SORTING.md](DEPTH_SORTING.md)** - Complete depth sorting guide
+- **[examples/depth_sorting_example.lua](examples/depth_sorting_example.lua)** - Working example scene
+
 ## Project Structure
 
 ```
-love2d-isometric/
-├── main.lua              # Entry point
-├── conf.lua              # LÖVE configuration
-├── engine/               # Core engine modules
-│   ├── game.lua         # Main game engine
-│   ├── scene.lua        # Scene/room system
-│   ├── inventory.lua    # Inventory management
-│   ├── dialog.lua       # Dialog system
-│   ├── cursor.lua       # Cursor and verbs
-│   ├── hotspot.lua      # Clickable areas
-│   ├── pathfinding.lua  # A* pathfinding
-│   └── interaction.lua  # Item combinations
-├── scenes/              # Game scenes/rooms
-│   └── room1.lua        # Example room
-└── assets/              # Images, sounds, etc.
+love2d-adventure/
+├── main.lua                      # Entry point
+├── conf.lua                      # LÖVE configuration
+├── README.md                     # This file
+├── DEPTH_SORTING.md              # Depth sorting documentation
+├── engine/                       # Core engine modules
+│   ├── game.lua                 # Main game engine
+│   ├── scene.lua                # Scene/room system
+│   ├── sceneobject.lua          # Depth-sorted objects
+│   ├── inventory.lua            # Inventory management
+│   ├── dialog.lua               # Dialog system
+│   ├── cursor.lua               # Cursor and verbs
+│   ├── hotspot.lua              # Clickable areas
+│   ├── pathfinding.lua          # A* pathfinding
+│   └── interaction.lua          # Item combinations
+├── scenes/                      # Game scenes/rooms
+│   └── room1.lua                # Example room with depth sorting
+├── examples/                    # Example scenes
+│   └── depth_sorting_example.lua # Depth sorting demo
+└── assets/                      # Images, sounds, etc.
 ```
 
 ## Example Scene

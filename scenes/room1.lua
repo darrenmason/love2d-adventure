@@ -23,6 +23,9 @@ function Room1:new(game)
     -- Create background
     self:createBackground()
     
+    -- Add scene objects (for depth sorting)
+    self:createSceneObjects()
+    
     -- Add hotspots and items
     self:createHotspots()
     
@@ -34,6 +37,7 @@ end
 
 function Room1:createBackground()
     -- Create a simple background using shapes
+    -- Note: The table is now a scene object for depth sorting
     local canvas = love.graphics.newCanvas(1024, 768)
     love.graphics.setCanvas(canvas)
     
@@ -57,12 +61,6 @@ function Room1:createBackground()
     love.graphics.setColor(0.6, 0.7, 0.8)
     love.graphics.rectangle("fill", 200, 150, 100, 80)
     
-    -- Table
-    love.graphics.setColor(0.3, 0.2, 0.1)
-    love.graphics.rectangle("fill", 400, 420, 200, 80)
-    love.graphics.rectangle("fill", 420, 500, 20, 50)
-    love.graphics.rectangle("fill", 560, 500, 20, 50)
-    
     -- Shelf
     love.graphics.setColor(0.25, 0.2, 0.15)
     love.graphics.rectangle("fill", 150, 250, 150, 15)
@@ -72,6 +70,68 @@ function Room1:createBackground()
     love.graphics.setColor(1, 1, 1)
     
     self.background = canvas
+end
+
+function Room1:createSceneObjects()
+    -- Create the table as a scene object with depth sorting
+    -- This allows the player to walk behind and in front of it
+    
+    -- Table sprite/canvas
+    local tableCanvas = love.graphics.newCanvas(200, 130)
+    love.graphics.setCanvas(tableCanvas)
+    love.graphics.clear(0, 0, 0, 0)  -- Transparent background
+    
+    -- Table top
+    love.graphics.setColor(0.3, 0.2, 0.1)
+    love.graphics.rectangle("fill", 0, 0, 200, 80)
+    
+    -- Add some shading for depth
+    love.graphics.setColor(0.2, 0.15, 0.08)
+    love.graphics.rectangle("fill", 0, 75, 200, 5)
+    
+    -- Table legs
+    love.graphics.setColor(0.25, 0.18, 0.1)
+    love.graphics.rectangle("fill", 20, 80, 20, 50)
+    love.graphics.rectangle("fill", 160, 80, 20, 50)
+    
+    love.graphics.setCanvas()
+    love.graphics.setColor(1, 1, 1)
+    
+    -- Create scene object for table
+    -- Position it so the baseline is at the bottom of the legs
+    local table = SceneObject:new("Table", 500, 550)
+    table:setSpriteImage(tableCanvas)
+    table:setOrigin(0.5, 1)  -- Center-bottom origin
+    table:setBaseline(550)   -- Bottom of table legs = baseline for depth sorting
+    table:setLayer("middle")
+    
+    self:addObject(table)
+    
+    -- Create a plant/vase as another depth-sorted object
+    local plantCanvas = love.graphics.newCanvas(60, 100)
+    love.graphics.setCanvas(plantCanvas)
+    love.graphics.clear(0, 0, 0, 0)
+    
+    -- Pot
+    love.graphics.setColor(0.5, 0.3, 0.2)
+    love.graphics.rectangle("fill", 15, 70, 30, 30)
+    
+    -- Plant
+    love.graphics.setColor(0.2, 0.5, 0.2)
+    love.graphics.circle("fill", 20, 40, 15)
+    love.graphics.circle("fill", 35, 35, 18)
+    love.graphics.circle("fill", 40, 50, 12)
+    
+    love.graphics.setCanvas()
+    love.graphics.setColor(1, 1, 1)
+    
+    local plant = SceneObject:new("Plant", 700, 480)
+    plant:setSpriteImage(plantCanvas)
+    plant:setOrigin(0.5, 1)
+    plant:setBaseline(480)
+    plant:setLayer("middle")
+    
+    self:addObject(plant)
 end
 
 function Room1:createHotspots()
@@ -108,9 +168,9 @@ function Room1:createHotspots()
     end)
     self:addHotspot(window)
     
-    -- Table hotspot
-    local table = Hotspot:new("Table", 400, 420, 200, 80)
-    table:setInteractionPoint(500, 520)
+    -- Table hotspot (matches the SceneObject position)
+    local table = Hotspot:new("Table", 400, 470, 200, 80)
+    table:setInteractionPoint(500, 560)
     table:onLook(function(game)
         if game:hasFlag("noteTaken") then
             game.dialogSystem:showMessage("An old wooden table. There's nothing interesting on it now.")
@@ -123,7 +183,7 @@ function Room1:createHotspots()
     end)
     self:addHotspot(table)
     
-    -- Note item (on table)
+    -- Note item (on table) - adjusted to new table position
     if not self.game:hasFlag("noteTaken") then
         local noteItem = {
             id = "note",
@@ -131,8 +191,8 @@ function Room1:createHotspots()
             description = "A yellowed piece of paper with strange writing.",
             stackable = false
         }
-        local note = ItemHotspot:new(noteItem, 470, 440, 50, 30)
-        note:setInteractionPoint(500, 520)
+        local note = ItemHotspot:new(noteItem, 470, 485, 50, 30)
+        note:setInteractionPoint(500, 560)
         note:onLook(function(game)
             game.dialogSystem:showMessage("A piece of paper with writing on it.")
         end)

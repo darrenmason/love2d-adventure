@@ -21,11 +21,18 @@ function Scene:new(game)
         path = nil,
         pathIndex = 1,
         sprite = nil,
-        facingLeft = false
+        facingLeft = false,
+        baseline = nil  -- If nil, uses player.y for depth sorting
     }
     
     -- NPCs in the scene
     self.npcs = {}
+    
+    -- Scene objects (props, furniture with depth sorting)
+    self.objects = {}
+    
+    -- Depth sorting enabled by default
+    self.depthSortingEnabled = true
     
     return self
 end
@@ -45,6 +52,15 @@ end
 
 function Scene:addNPC(npc)
     table.insert(self.npcs, npc)
+end
+
+function Scene:addObject(object)
+    -- Add a scene object (for depth sorting)
+    table.insert(self.objects, object)
+end
+
+function Scene:setDepthSorting(enabled)
+    self.depthSortingEnabled = enabled
 end
 
 function Scene:update(dt)
@@ -114,15 +130,111 @@ function Scene:draw()
         end
     end
     
-    -- Draw NPCs
-    for _, npc in ipairs(self.npcs) do
-        if npc.draw then
-            npc:draw()
+    -- Depth sorting: Draw objects, NPCs, and player in correct order
+    if self.depthSortingEnabled then
+        self:drawWithDepthSorting()
+    else
+        -- Legacy rendering (no depth sorting)
+        self:drawObjectsLayer("background")
+        self:drawObjectsLayer("middle")
+        
+        for _, npc in ipairs(self.npcs) do
+            if npc.draw then
+                npc:draw()
+            end
+        end
+        
+        self:drawPlayer()
+        self:drawObjectsLayer("foreground")
+    end
+end
+
+function Scene:drawObjectsLayer(layer)
+    -- Draw objects of a specific layer (without depth sorting)
+    for _, obj in ipairs(self.objects) do
+        if obj.layer == layer then
+            obj:draw()
+        end
+    end
+end
+
+function Scene:drawWithDepthSorting()
+    -- Gather all entities that need depth sorting
+    local entities = {}
+    
+    -- Add background layer objects (always behind everything)
+    for _, obj in ipairs(self.objects) do
+        if obj.layer == "background" then
+            table.insert(entities, {
+                type = "object",
+                data = obj,
+                depth = -999999  -- Always behind
+            })
         end
     end
     
-    -- Draw player
-    self:drawPlayer()
+    -- Add middle layer objects (depth sorted)
+    for _, obj in ipairs(self.objects) do
+        if obj.layer == "middle" then
+            table.insert(entities, {
+                type = "object",
+                data = obj,
+                depth = obj:getDepthValue()
+            })
+        end
+    end
+    
+    -- Add NPCs
+    for _, npc in ipairs(self.npcs) do
+        local depth = npc.baseline or npc.y
+        table.insert(entities, {
+            type = "npc",
+            data = npc,
+            depth = depth
+        })
+    end
+    
+    -- Add player
+    local playerDepth = self.player.baseline or self.player.y
+    table.insert(entities, {
+        type = "player",
+        data = self.player,
+        depth = playerDepth
+    })
+    
+    -- Add foreground layer objects (always on top)
+    for _, obj in ipairs(self.objects) do
+        if obj.layer == "foreground" then
+            table.insert(entities, {
+                type = "object",
+                data = obj,
+                depth = 999999  -- Always on top
+            })
+        end
+    end
+    
+    -- Sort by depth (lower depth = drawn first = behind)
+    table.sort(entities, function(a, b)
+        return a.depth < b.depth
+    end)
+    
+    -- Draw all entities in sorted order
+    for _, entity in ipairs(entities) do
+        if entity.type == "object" then
+            entity.data:draw()
+            
+            -- Debug
+            if love.keyboard.isDown("d") then
+                entity.data:drawDebug()
+            end
+        elseif entity.type == "npc" then
+            if entity.data.draw then
+                entity.data:draw()
+            end
+        elseif entity.type == "player" then
+            self:drawPlayer()
+        end
+    end
 end
 
 function Scene:drawPlayer()
